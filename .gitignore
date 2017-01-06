@@ -1,7 +1,7 @@
 .vs/*
 
-BuffPanelSDK/bin/*
-BuffPanelSDK/obj/*
+bin/*
+obj/*
 
 *~
 *.suo
