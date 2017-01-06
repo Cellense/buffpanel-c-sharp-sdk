@@ -4,3 +4,4 @@ BuffPanelSDK/bin/*
 BuffPanelSDK/obj/*
 
 *~
+*.suo
