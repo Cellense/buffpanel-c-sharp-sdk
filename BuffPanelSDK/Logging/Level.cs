@@ -6,6 +6,6 @@ using System.Text;
 namespace BuffPanel.Logging
 {
 
-    public enum Level { Debug, Info, Warn, Error };
+	public enum Level { Debug, Info, Warn, Error };
 
 }

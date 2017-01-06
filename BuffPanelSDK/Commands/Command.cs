@@ -7,9 +7,9 @@ using BuffPanel;
 namespace BuffPanel.Commands
 {
 
-    internal interface Command
-    {
-        void Execute(State state);
-    }
+	internal interface Command
+	{
+		void Execute(State state);
+	}
 
 }

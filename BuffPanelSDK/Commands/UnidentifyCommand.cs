@@ -5,13 +5,13 @@ using System.Text;
 
 namespace BuffPanel.Commands
 {
-    internal class UnidentifyCommand : Command
-    {
+	internal class UnidentifyCommand : Command
+	{
 
-        public void Execute(State state)
-        {
-            state.RemoveIds();
-        }
+		public void Execute(State state)
+		{
+			state.RemoveIds();
+		}
 
-    }
+	}
 }
