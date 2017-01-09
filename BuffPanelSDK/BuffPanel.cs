@@ -16,7 +16,8 @@ namespace BuffPanel
 			}
 		}
 
-		private static int baseTimeout = 10000;
+		private static int requestTimeout = 10000;
+		private static int baseRetryTimeout = 1000;
 		private static int maxRetries = 10;
 
 		private static string serviceHostname = "buffpanel.com";
@@ -107,7 +108,7 @@ namespace BuffPanel
 
 		private void SendRequest()
 		{
-			int currentTimeout = baseTimeout;
+			int currentTimeout = baseRetryTimeout;
 
 			for (int i = 0; i < maxRetries; ++i)
 			{
@@ -170,7 +171,7 @@ namespace BuffPanel
 			WebRequest request = WebRequest.Create(this.url);
 			request.Method = "POST";
 			request.ContentType = "application/json";
-			request.Timeout = Constants.BULK_TIMEOUT_MS;
+			request.Timeout = requestTimeout;
 
 			using (var streamWriter = new StreamWriter(request.GetRequestStream()))
 			{
