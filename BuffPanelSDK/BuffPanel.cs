@@ -17,7 +17,7 @@ namespace BuffPanel
 		}
 
 		private static int requestTimeout = 10000;
-		private static int baseRetryTimeout = 1000;
+		private static int baseRetryTimeout = 200;
 		private static int maxRetries = 10;
 
 		private static string serviceHostname = "buffpanel.com";
