@@ -16,6 +16,9 @@ namespace BuffPanel
 			}
 		}
 
+		private static int baseTimeout = 10000;
+		private static int maxRetries = 10;
+
 		private static string serviceHostname = "buffpanel.com";
 		private static string servicePath = "/api/run";
 
@@ -104,9 +107,9 @@ namespace BuffPanel
 
 		private void SendRequest()
 		{
-			int currentTimeout = Constants.BULK_TIMEOUT_MS;
+			int currentTimeout = baseTimeout;
 
-			for (int i = 0; i < Constants.BULK_MAX_RETRIES; ++i)
+			for (int i = 0; i < maxRetries; ++i)
 			{
 				try
 				{
