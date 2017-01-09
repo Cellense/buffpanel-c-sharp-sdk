@@ -31,7 +31,7 @@ When called, the SDK sends a HTTP request to the REST API of the BuffPanel serve
 
 ### Logging
 
-By default BuffPanel does not log anything. You can turn on logging by specifying logger instance in `Initialize` call.
+By default BuffPanel does not log anything. You can turn on logging by specifying logger instance in `Track` call.
 
 ```
 BuffPanel.BuffPanel.Track(game_token, player_token, new BuffPanel.Logging.ConsoleLogger());
