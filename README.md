@@ -1,6 +1,6 @@
 # BuffPanel C# SDK
 
-This repository contains an implementation with a simple interface designed to easily communicate with the REST API of the BuffPanel service in your Unity Game.
+This repository contains an implementation with a simple interface designed to easily communicate with the REST API of the BuffPanel service in your C# Game.
 
 For more information on the BuffPanel service, please visit our [website](http://buffPanel.com/).
 
