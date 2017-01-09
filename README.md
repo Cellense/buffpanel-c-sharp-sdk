@@ -1,6 +1,6 @@
 # BuffPanel C# SDK
 
-This repository contains an implementation with a simple interface designed to easily communicate with the REST API of the BuffPanel service in your Unity Game.
+This repository contains an implementation with a simple interface designed to easily communicate with the REST API of the BuffPanel service in your C# Game.
 
 For more information on the BuffPanel service, please visit our [website](http://buffPanel.com/).
 
@@ -31,7 +31,7 @@ When called, the SDK sends a HTTP request to the REST API of the BuffPanel serve
 
 ### Logging
 
-By default BuffPanel does not log anything. You can turn on logging by specifying logger instance in `Initialize` call.
+By default BuffPanel does not log anything. You can turn on logging by specifying logger instance in `Track` call.
 
 ```
 BuffPanel.BuffPanel.Track(game_token, player_token, new BuffPanel.Logging.ConsoleLogger());
