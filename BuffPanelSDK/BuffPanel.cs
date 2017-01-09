@@ -1,237 +1,182 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
-using System.Collections.Concurrent;
-using BuffPanel.Commands;
 using BuffPanel.Logging;
-
+using System.Net;
+using System.IO;
 
 namespace BuffPanel
 {
 	public class BuffPanel
 	{
-		public static string serviceHostname = "trbt.it";
-		public static string servicePath = "/api/run";
-
-		private static float initialRetryOffset = 0.25f;
-		private static int maxRetryCount = 10;
-
-		private static volatile BuffPanel instance;
-		private static object getInstanceLock = new Object();
-		private static object initializeFinalizeLock = new Object();
-		private static object sessionLock = new Object();
-
-		private bool initialized = false;
-		private string appVersion = null;
-		private double sessionStartTimestamp = double.NaN;
-		private Dictionary<string, object> deviceProperties = null;
-
-		private Logger logger = null;
-		private State state = null;
-		private volatile BlockingCollection<Command> queue = new BlockingCollection<Command>();
-		private Thread worker = null;
-
-		private BuffPanel()
+		internal class BuffPanelException: Exception
 		{
-			deviceProperties = Device.GetProperties();
+			public BuffPanelException(string message): base(message)
+			{
+			}
 		}
 
-		public static BuffPanel GetInstance()
+		private static string serviceHostname = "buffpanel.com";
+		private static string servicePath = "/api/run";
+
+		private static Thread worker = null;
+		private static BuffPanel instance = null;
+
+		private string url;
+		private string httpBody;
+		private Logger logger;
+
+		public static void Track(string gameToken, string playerToken)
 		{
+			Track(gameToken, playerToken, null);
+		}
+
+		public static void Track(string gameToken, string playerToken, Logger logger)
+		{
+			Track(gameToken, new Dictionary<string, object> { { "registered", playerToken } }, logger);
+		}
+
+		public static void Track(string gameToken, Dictionary<string, object> playerTokens)
+		{
+			Track(gameToken, playerTokens, null);
+		}
+
+		public static void Track(string gameToken, Dictionary<string, object> playerTokens, Logger logger)
+		{
+			Logger innerLogger = (logger != null) ? logger : new NullLogger();
+
 			if (instance == null)
 			{
-				lock (getInstanceLock)
+				string httpBody = CreateHttpBody(gameToken, playerTokens);
+				if (httpBody == null)
 				{
-					if (instance == null) instance = new BuffPanel();
+					innerLogger.Log(Level.Warn, "No suitable player token has been supplied.");
+					return;
 				}
-			}
-			return instance;
-		}
 
-		public string Version
-		{
-			get { return Constants.VERSION; }
-		}
-
-		public void Initialize(string projectToken, string appVersion, string target, Logger logger, string workingDirectory)
-		{
-			lock (initializeFinalizeLock)
-			{
-				if (initialized) throw new System.InvalidOperationException("BuffPanel client has been already initialized");
-				this.appVersion = appVersion;
-				initialized = true;
-				this.logger = logger;
-				state = new State(projectToken, target, logger, workingDirectory);
-				CommandManager manager = new CommandManager(queue, state);
-				worker = new Thread(new ThreadStart(manager.Consume));
+				instance = new BuffPanel("http://" + serviceHostname + servicePath, httpBody, innerLogger);
+				worker = new Thread(new ThreadStart(instance.SendRequest));
 				worker.Start();
 			}
-		}
-
-		public void Initialize(string projectToken, string appVersion, string target)
-		{
-			Initialize(projectToken, appVersion, target, null, null);
-		}
-
-		public void Initialize(string projectToken, string appVersion)
-		{
-			Initialize(projectToken, appVersion, null, null, null);
-		}
-
-		public void Initialize(string projectToken)
-		{
-			Initialize(projectToken, null, null, null, null);
-		}
-
-		public void Identify(string registeredId)
-		{
-			Identify(new Dictionary<string, string>() { { Constants.ID_REGISTERED, registeredId } }, null);
-		}
-
-		public void Identify(Dictionary<string, string> customerIds)
-		{
-			Identify(customerIds, null);
-		}
-
-		public void Identify(string registeredId, Dictionary<string, object> properties)
-		{
-			Identify(new Dictionary<string, string>() { { Constants.ID_REGISTERED, registeredId } }, properties);
-		}
-
-		public void Identify(Dictionary<string, string> customerIds, Dictionary<string, object> properties)
-		{
-			Enqueue(new IdentifyCommand(customerIds, properties));
-		}
-
-		public void Unidentify()
-		{
-			Enqueue(new UnidentifyCommand());
-		}
-
-		public void Update(Dictionary<string, object> properties)
-		{
-			Enqueue(new UpdateCommand(properties));
-		}
-
-		public void Track(string type)
-		{
-			Track(type, null, double.NaN);
-		}
-
-		public void Track(string type, Dictionary<string, object> properties)
-		{
-			Track(type, properties, double.NaN);
-		}
-
-		public void Track(string type, Dictionary<string, object> properties, double timestamp)
-		{
-			Enqueue(new TrackCommand(type, properties, timestamp));
-		}
-
-		private void Enqueue(Command command)
-		{
-			try
+			else
 			{
-				queue.Add(command);
+				innerLogger.Log(Level.Warn, "An instance is already running.");
 			}
-			catch (Exception e)
+		}
+
+		private static string CreateHttpBody(string gameToken, Dictionary<string, object> playerTokens)
+		{
+			Dictionary<string, object> playerTokensDict = new Dictionary<string, object>();
+			if (playerTokens.ContainsKey("registered"))
 			{
-				lock (initializeFinalizeLock)
+				playerTokensDict.Add("registered", playerTokens["registered"]);
+			}
+			if (playerTokens.ContainsKey("user_id"))
+			{
+				playerTokensDict.Add("user_id", playerTokens["user_id"]);
+			}
+			if (playerTokensDict.Count == 0)
+			{
+				return null;
+			}
+
+			return Json.Serialize(new Dictionary<string, object>
+			{
+				{ "game_token", gameToken },
+				{ "player_tokens", playerTokensDict }//,
+				// TODO: { "browser_cookies", CookieExtractor.ReadChromeCookies() }
+			});
+		}
+
+		private static void Terminate()
+		{
+			worker.Join();
+			worker = null;
+			instance = null;
+		}
+
+		private BuffPanel(string newUrl, string newHttpBody, Logger newLogger)
+		{
+			this.url = newUrl;
+			this.httpBody = newHttpBody;
+			this.logger = newLogger;
+		}
+
+		private void SendRequest()
+		{
+			int currentTimeout = Constants.BULK_TIMEOUT_MS;
+
+			for (int i = 0; i < Constants.BULK_MAX_RETRIES; ++i)
+			{
+				try
 				{
-					// this should be synchronized since we change lock during initialize call
-					if (logger != null && logger.IsLevelEnabled(Level.Error)) logger.Log(Level.Error, e.Message);
+					WebRequest request = CreateRequest();
+					var httpResponse = (HttpWebResponse)request.GetResponse();
+
+					using (var streamReader = new StreamReader(httpResponse.GetResponseStream()))
+					{
+						var result = streamReader.ReadToEnd();
+						if (result == null)
+						{
+							throw new BuffPanelException("The result cannot be read.");
+						}
+						var resultParse = Json.Deserialize(result) as Dictionary<string, object>;
+						if (resultParse == null)
+						{
+							throw new BuffPanelException("The response cannot be parsed.");
+						}
+
+						if (!(bool)resultParse["success"])
+						{
+							if (this.logger.IsLevelEnabled(Level.Error))
+							{
+								this.logger.Log(Level.Error, "An error has occured : \n" + result);
+							}
+
+							break;
+						}
+					}
+
+					break;
 				}
-			}
-		}
-
-		public void TrackSessionStart()
-		{
-			TrackSessionStart(null);
-		}
-
-		public void TrackSessionStart(Dictionary<string, object> properties)
-		{
-			lock (sessionLock)
-			{
-				if (!double.IsNaN(sessionStartTimestamp))
+				catch (WebException ex)
 				{
-					TrackSessionEnd(properties);
+					if (this.logger.IsLevelEnabled(Level.Error))
+					{
+						this.logger.Log(Level.Error, ex.Message);
+					}
 				}
-
-				Dictionary<string, object> mergedProperties = MergeAutomaticProperties(properties);
-
-				sessionStartTimestamp = Utils.GetCurrentTimestamp();
-				Track(Constants.EVENT_SESSION_START, mergedProperties, sessionStartTimestamp);
-			}
-		}
-
-		public void TrackSessionEnd()
-		{
-			TrackSessionEnd(null);
-		}
-
-		public void TrackSessionEnd(Dictionary<string, object> properties)
-		{
-			lock (sessionLock)
-			{
-				double timestamp = Utils.GetCurrentTimestamp();
-
-				Dictionary<string, object> mergedProperties = MergeAutomaticProperties(properties);
-				if (!double.IsNaN(sessionStartTimestamp))
+				catch (BuffPanelException ex)
 				{
-					mergedProperties.Add(Constants.PROPERTY_DURATION, timestamp - sessionStartTimestamp);
+					if (this.logger.IsLevelEnabled(Level.Error))
+					{
+						this.logger.Log(Level.Error, ex.Message);
+					}
 				}
 
-				sessionStartTimestamp = double.NaN;
-				Track(Constants.EVENT_SESSION_END, mergedProperties, timestamp);
+				Thread.Sleep(currentTimeout);
+				currentTimeout *= 2;
 			}
+
+			Terminate();
 		}
 
-		public void TrackVirtualPayment(string currency, long amount, string itemName, string itemType)
+		private WebRequest CreateRequest()
 		{
-			Dictionary<string, object> properties = new Dictionary<string, object>(deviceProperties);
-			properties.Add(Constants.PROPERTY_CURRENCY, currency);
-			properties.Add(Constants.PROPERTY_AMOUNT, amount);
-			properties.Add(Constants.PROPERTY_ITEM_NAME, itemName);
-			properties.Add(Constants.PROPERTY_ITEM_TYPE, itemType);
-			this.Track(Constants.EVENT_VIRTUAL_PAYMENT, properties);
-		}
 
-		private Dictionary<string, object> MergeAutomaticProperties(Dictionary<string, object> properties)
-		{
-			lock (initializeFinalizeLock)
+			WebRequest request = WebRequest.Create(this.url);
+			request.Method = "POST";
+			request.ContentType = "application/json";
+			request.Timeout = Constants.BULK_TIMEOUT_MS;
+
+			using (var streamWriter = new StreamWriter(request.GetRequestStream()))
 			{
-				// this should be synchronized since during initialize appVersion can be altered
-				Dictionary<string, object> mergedProperties = new Dictionary<string, object>(deviceProperties);
-				if (appVersion != null)
-				{
-					mergedProperties.Add(Constants.PROPERTY_APP_VERSION, appVersion);
-				}
-				if (properties != null)
-				{
-					Utils.ExtendDictionary(mergedProperties, properties);
-				}
-				return mergedProperties;
+				streamWriter.Write(this.httpBody);
+				streamWriter.Flush();
+				streamWriter.Close();
 			}
-		}
 
-		public void Dispose()
-		{
-			Dispose(true);
-		}
-
-		public void Dispose(bool sendAllQueued)
-		{
-			lock (initializeFinalizeLock)
-			{
-				if (!initialized) throw new System.InvalidOperationException("BuffPanel client is not initialized");
-				state.sendAllQueued = sendAllQueued;
-				BlockingCollection<Command> oldQueue = queue;
-				queue = new BlockingCollection<Command>();
-				oldQueue.CompleteAdding();
-				worker.Join();
-				initialized = false;
-			}
+			return request;
 		}
 
 	}
