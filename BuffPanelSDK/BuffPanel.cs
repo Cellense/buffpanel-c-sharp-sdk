@@ -30,22 +30,12 @@ namespace BuffPanel
 		private string httpBody;
 		private Logger logger;
 
-		public static void Track(string gameToken, string playerToken)
-		{
-			Track(gameToken, playerToken, null);
-		}
-
-		public static void Track(string gameToken, string playerToken, Logger logger)
+		public static void Track(string gameToken, string playerToken, Logger logger = null)
 		{
 			Track(gameToken, new Dictionary<string, object> { { "registered", playerToken } }, logger);
 		}
 
-		public static void Track(string gameToken, Dictionary<string, object> playerTokens)
-		{
-			Track(gameToken, playerTokens, null);
-		}
-
-		public static void Track(string gameToken, Dictionary<string, object> playerTokens, Logger logger)
+		public static void Track(string gameToken, Dictionary<string, object> playerTokens, Logger logger = null)
 		{
 			Logger innerLogger = (logger != null) ? logger : new NullLogger();
 
