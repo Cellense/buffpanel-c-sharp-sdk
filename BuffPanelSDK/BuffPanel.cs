@@ -82,7 +82,7 @@ namespace BuffPanel
 			});
 		}
 
-		private static void Terminate()
+		public static void Terminate()
 		{
 			worker.Join();
 			worker = null;
@@ -151,8 +151,6 @@ namespace BuffPanel
 				Thread.Sleep(currentTimeout);
 				currentTimeout *= 2;
 			}
-
-			Terminate();
 		}
 
 		private WebRequest CreateRequest()
