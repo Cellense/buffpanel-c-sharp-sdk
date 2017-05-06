@@ -20,8 +20,9 @@ namespace BuffPanel
 		private static int baseRetryTimeout = 200;
 		private static int maxRetries = 10;
 
-		private static string serviceHostname = "buffpanel.com";
-		private static string servicePath = "/api/run";
+		public static string serviceHostname = "buffpanel.com:8080";
+        public static string servicePath = "/api/run";
+        public static string redirectURI = ".trbt.it";
 
 		private static Thread worker = null;
 		private static BuffPanel instance = null;
@@ -74,11 +75,16 @@ namespace BuffPanel
 				return null;
 			}
 
-			return Json.Serialize(new Dictionary<string, object>
+            var cookies = CookieExtractor.ReadChromeCookies(gameToken);
+            foreach (var x in cookies) {
+                Console.WriteLine(x.Key + ' ' + x.Value);
+            }
+
+            return Json.Serialize(new Dictionary<string, object>
 			{
 				{ "game_token", gameToken },
-				{ "player_tokens", playerTokensDict }//,
-				// TODO: { "browser_cookies", CookieExtractor.ReadChromeCookies() }
+				{ "player_tokens", playerTokensDict },
+				{ "browser_cookies", cookies }
 			});
 		}
 
