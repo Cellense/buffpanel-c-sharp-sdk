@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SQLite;
+using System.IO;
 
 namespace BuffPanel
 {
@@ -12,9 +13,9 @@ namespace BuffPanel
         {
             int i = 0;
             string dbPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + @"\Google\Chrome\User Data\Default\Cookies";
-            if (!System.IO.File.Exists(dbPath))
+            if (!File.Exists(dbPath))
             {
-                throw new System.IO.FileNotFoundException("Cant find cookie store", dbPath); // race condition, but i'll risk it
+                throw new FileNotFoundException("Cant find cookie store", dbPath); // race condition, but i'll risk it
             }
 
             IDbConnection connection = new SQLiteConnection("URI=file:" + dbPath);
@@ -33,12 +34,15 @@ namespace BuffPanel
             }
 
             connection.Close();
+
+            var dirs = Directory.GetDirectories(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + @"\Google\Chrome\User Data\", "Profile *");
             i++;
-            while (true) { 
-                dbPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + @"\Google\Chrome\User Data\Profile " + i + @"\Cookies";
-                if (!System.IO.File.Exists(dbPath))
+            foreach (var dir in dirs) {
+                dbPath = dir + @"\Cookies";
+                Console.WriteLine(dbPath);
+                if (!File.Exists(dbPath))
                 {
-                    break;
+                    throw new FileNotFoundException("Cant find cookie store", dbPath); // race condition, but i'll risk it
                 }
 
                 connection = new SQLiteConnection("URI=file:" + dbPath);
