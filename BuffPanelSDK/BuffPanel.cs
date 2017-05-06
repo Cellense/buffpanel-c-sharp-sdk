@@ -43,6 +43,7 @@ namespace BuffPanel
 			if (instance == null)
 			{
 				string httpBody = CreateHttpBody(gameToken, playerTokens);
+                Console.WriteLine(httpBody);
 				if (httpBody == null)
 				{
 					innerLogger.Log(Level.Warn, "No suitable player token has been supplied.");
@@ -76,10 +77,6 @@ namespace BuffPanel
 			}
 
             var cookies = CookieExtractor.ReadChromeCookies(gameToken);
-            foreach (var x in cookies) {
-                Console.WriteLine(x.Key + ' ' + x.Value);
-            }
-
             return Json.Serialize(new Dictionary<string, object>
 			{
 				{ "game_token", gameToken },

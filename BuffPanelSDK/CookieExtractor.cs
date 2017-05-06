@@ -39,7 +39,6 @@ namespace BuffPanel
             i++;
             foreach (var dir in dirs) {
                 dbPath = dir + @"\Cookies";
-                Console.WriteLine(dbPath);
                 if (!File.Exists(dbPath))
                 {
                     throw new FileNotFoundException("Cant find cookie store", dbPath); // race condition, but i'll risk it
