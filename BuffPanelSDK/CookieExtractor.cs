@@ -9,7 +9,19 @@ namespace BuffPanel
 {
     public class CookieExtractor
     {
-        public static Dictionary<string, object> ReadChromeCookies(string gameToken)
+        public class CookieData
+        {
+            public string plainText { get; }
+            public long expiresUTC { get; }
+
+            public CookieData(string plainText, long expiresUTC)
+            {
+                this.plainText = plainText;
+                this.expiresUTC = expiresUTC;
+            }
+        }
+
+        public static Dictionary<string, string> ReadChromeCookies(string gameToken)
         {
             int i = 0;
             string dbPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + @"\Google\Chrome\User Data\Default\Cookies";
@@ -24,13 +36,14 @@ namespace BuffPanel
             command.CommandText = "SELECT name, encrypted_value FROM cookies WHERE host_key LIKE '%" + gameToken + "" + BuffPanel.redirectURI + "%';";
             IDataReader reader = command.ExecuteReader();
 
-            Dictionary<string, object> result = new Dictionary<string, object>();
+            Dictionary<string, string> result = new Dictionary<string, string>();
             while (reader.Read())
             {
                 var encryptedData = (byte[])reader[1];
                 var decodedData = System.Security.Cryptography.ProtectedData.Unprotect(encryptedData, null, System.Security.Cryptography.DataProtectionScope.CurrentUser);
                 var plainText = System.Text.Encoding.ASCII.GetString(decodedData); // Looks like ASCII
-                result.Add(i.ToString() + "~" + reader.GetString(0), plainText);
+                var clickId = reader.GetString(0);
+                result.Add(clickId, plainText);
             }
 
             connection.Close();
@@ -55,7 +68,8 @@ namespace BuffPanel
                     var encryptedData = (byte[])reader[1];
                     var decodedData = System.Security.Cryptography.ProtectedData.Unprotect(encryptedData, null, System.Security.Cryptography.DataProtectionScope.CurrentUser);
                     var plainText = System.Text.Encoding.ASCII.GetString(decodedData); // Looks like ASCII
-                    result.Add(i.ToString() + "~" + reader.GetString(0), plainText);
+                    var clickId = reader.GetString(0);
+                    result.Add(clickId, plainText);
                 }
 
                 connection.Close();
