@@ -10,7 +10,7 @@ namespace BuffPanel
     {
         static void Main(string[] args)
         {
-            BuffPanel.Track("ochgodsamo", "asdqwefg");
+            BuffPanel.Track("kokosynasnehu", DateTime.Now.ToString());
             Console.ReadKey();
         }
     }

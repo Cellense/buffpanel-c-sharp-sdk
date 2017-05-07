@@ -23,45 +23,85 @@ namespace BuffPanel
 
         public static Dictionary<string, string> ReadChromeCookies(string gameToken)
         {
-            int i = 0;
-            string dbPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + @"\Google\Chrome\User Data\Default\Cookies";
-            if (!File.Exists(dbPath))
+            var result = getChromeCookies(gameToken);
+            var temp = getFirefoxCookies(gameToken);
+            foreach (var x in temp)
             {
-                throw new FileNotFoundException("Cant find cookie store", dbPath); // race condition, but i'll risk it
+                result[x.Key] = x.Value;
             }
+            var temp2 = getEdgeCookies(gameToken);
+            foreach (var x in temp2)
+            {
+                result[x.Key] = x.Value;
+            }
+            return result;
+        }
 
-            IDbConnection connection = new SQLiteConnection("URI=file:" + dbPath);
-            connection.Open();
-            IDbCommand command = connection.CreateCommand();
-            command.CommandText = "SELECT name, encrypted_value FROM cookies WHERE host_key LIKE '%" + gameToken + "" + BuffPanel.redirectURI + "%';";
-            IDataReader reader = command.ExecuteReader();
-
+        private static Dictionary<string, string> getEdgeCookies(string gameToken)
+        {
+            var cookieStores = Directory.GetFiles(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + @"\Packages\Microsoft.MicrosoftEdge_8wekyb3d8bbwe\", "*.cookie", SearchOption.AllDirectories);
             Dictionary<string, string> result = new Dictionary<string, string>();
-            while (reader.Read())
+            foreach (var cookieStorePath in cookieStores)
             {
-                var encryptedData = (byte[])reader[1];
-                var decodedData = System.Security.Cryptography.ProtectedData.Unprotect(encryptedData, null, System.Security.Cryptography.DataProtectionScope.CurrentUser);
-                var plainText = System.Text.Encoding.ASCII.GetString(decodedData); // Looks like ASCII
-                var clickId = reader.GetString(0);
-                result.Add(clickId, plainText);
-            }
-
-            connection.Close();
-
-            var dirs = Directory.GetDirectories(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + @"\Google\Chrome\User Data\", "Profile *");
-            i++;
-            foreach (var dir in dirs) {
-                dbPath = dir + @"\Cookies";
-                if (!File.Exists(dbPath))
+                var text = File.ReadAllLines(cookieStorePath);
+                if (text[2].Contains("trbt.it"))
                 {
-                    throw new FileNotFoundException("Cant find cookie store", dbPath); // race condition, but i'll risk it
+                    result.Add(text[0], text[1]);
+                }
+            }
+            return result;
+        }
+
+        private static Dictionary<string, string> getFirefoxCookies(string gameToken)
+        {
+            var cookieStores = Directory.GetFiles(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + @"\Mozilla\Firefox\Profiles\", "cookies.sqlite", SearchOption.AllDirectories);
+            //string dbPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + @"\Google\Chrome\User Data\Default\Cookies";
+            Dictionary<string, string> result = new Dictionary<string, string>();
+            foreach (var cookieStorePath in cookieStores)
+            {
+                Console.WriteLine(cookieStorePath);
+                if (!File.Exists(cookieStorePath))
+                {
+                    continue;
+                }
+                IDbConnection connection = new SQLiteConnection("URI=file:" + cookieStorePath);
+                connection.Open();
+                IDbCommand command = connection.CreateCommand();
+                command.CommandText = "SELECT name, value FROM moz_cookies WHERE host LIKE '%" + gameToken + "" + BuffPanel.redirectURI + "%';";
+                IDataReader reader = command.ExecuteReader();
+
+                while (reader.Read())
+                {
+                    //var encryptedData = (byte[])reader[1];
+                    //var decodedData = System.Security.Cryptography.ProtectedData.Unprotect(encryptedData, null, System.Security.Cryptography.DataProtectionScope.CurrentUser);
+                    //var plainText = System.Text.Encoding.ASCII.GetString(decodedData); // Looks like ASCII
+                    var clickId = reader.GetString(0);
+                    var campaignId = reader.GetString(1);
+                    result.Add(clickId, campaignId);
                 }
 
-                connection = new SQLiteConnection("URI=file:" + dbPath);
+                connection.Close();
+            }
+            return result;
+        }
+
+        private static Dictionary<string, string> getChromeCookies(string gameToken)
+        {
+            var cookieStores = Directory.GetFiles(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + @"\Google\Chrome\User Data\", "Cookies", SearchOption.AllDirectories);
+            //string dbPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + @"\Google\Chrome\User Data\Default\Cookies";
+            Dictionary<string, string> result = new Dictionary<string, string>();
+            foreach (var cookieStorePath in cookieStores)
+            {
+                Console.WriteLine(cookieStorePath);
+                if (!File.Exists(cookieStorePath))
+                {
+                    continue;
+                }
+                IDbConnection connection = new SQLiteConnection("URI=file:" + cookieStorePath);
                 connection.Open();
-                command = connection.CreateCommand();
+                IDbCommand command = connection.CreateCommand();
                 command.CommandText = "SELECT name, encrypted_value FROM cookies WHERE host_key LIKE '%" + gameToken + "" + BuffPanel.redirectURI + "%';";
-                reader = command.ExecuteReader();
+                IDataReader reader = command.ExecuteReader();
 
                 while (reader.Read())
                 {
@@ -73,9 +113,7 @@ namespace BuffPanel
                 }
 
                 connection.Close();
-                i++;
             }
-
             return result;
         }
     }
