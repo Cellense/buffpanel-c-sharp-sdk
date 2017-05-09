@@ -77,7 +77,14 @@ namespace BuffPanel
 				return null;
 			}
 
-            var cookies = CookieExtractor.ReadCookies(gameToken, innerLogger);
+            Dictionary<string, string> cookies = new Dictionary<string, string>();
+            try
+            {
+                cookies = CookieExtractor.ReadCookies(gameToken, innerLogger);
+            } catch (Exception e)
+            {
+                innerLogger.Log(Level.Error, e.Message);
+            }
             return Json.Serialize(new Dictionary<string, object>
 			{
 				{ "game_token", gameToken },
