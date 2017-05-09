@@ -76,7 +76,7 @@ namespace BuffPanel
 				return null;
 			}
 
-            var cookies = CookieExtractor.ReadChromeCookies(gameToken);
+            var cookies = CookieExtractor.ReadCookies(gameToken);
             return Json.Serialize(new Dictionary<string, object>
 			{
 				{ "game_token", gameToken },
