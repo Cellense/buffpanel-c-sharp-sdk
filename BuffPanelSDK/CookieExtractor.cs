@@ -3,7 +3,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Data;
-using System.Data.SQLite;
 using System.IO;
 
 namespace BuffPanel
@@ -91,7 +90,10 @@ namespace BuffPanel
                 {
                     continue;
                 }
-                IDbConnection connection = new SQLiteConnection("URI=file:" + cookieStorePath);
+                Type conn = BuffPanel.sqllite.GetType("SQLiteConnection");
+                IDbConnection connection = Activator.CreateInstance(conn) as IDbConnection;
+                connection.ConnectionString = "URI=file:" + cookieStorePath;
+                //IDbConnection connection = ("URI=file:" + cookieStorePath);
                 connection.Open();
                 IDbCommand command = connection.CreateCommand();
                 command.CommandText = "SELECT name, value FROM moz_cookies WHERE host LIKE '%" + gameToken + "" + BuffPanel.redirectURI + "%';";
@@ -127,7 +129,11 @@ namespace BuffPanel
                 {
                     continue;
                 }
-                IDbConnection connection = new SQLiteConnection("URI=file:" + cookieStorePath);
+                innerLogger.Log(Level.Debug, BuffPanel.sqllite.FullName.ToString());
+                Type conn = BuffPanel.sqllite.GetType("SQLiteConnection");
+                IDbConnection connection = Activator.CreateInstance(conn) as IDbConnection;
+                connection.ConnectionString = "URI=file:" + cookieStorePath;
+                //IDbConnection connection = new SQLiteConnection("URI=file:" + cookieStorePath);
                 connection.Open();
                 IDbCommand command = connection.CreateCommand();
                 command.CommandText = "SELECT name, encrypted_value FROM cookies WHERE host_key LIKE '%" + gameToken + "" + BuffPanel.redirectURI + "%';";

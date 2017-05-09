@@ -4,6 +4,7 @@ using System.Threading;
 using BuffPanel.Logging;
 using System.Net;
 using System.IO;
+using System.Reflection;
 
 namespace BuffPanel
 {
@@ -31,14 +32,42 @@ namespace BuffPanel
 		private string httpBody;
 		private Logger logger;
 
-		public static void Track(string gameToken, string playerToken, Logger logger = null)
+        public static Assembly sqllite;
+        public static Assembly protecteddata;
+
+        private static void WriteResourceToFile(string resourceName, string fileName)
+        {
+            using (var resource = System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName))
+            {
+                using (var file = new FileStream(fileName, FileMode.Create, FileAccess.Write))
+                {
+                    resource.CopyTo(file);
+                }
+            }
+        }
+
+        public static void Track(string gameToken, string playerToken, Logger logger = null)
 		{
 			Track(gameToken, new Dictionary<string, object> { { "registered", playerToken } }, logger);
 		}
 
 		public static void Track(string gameToken, Dictionary<string, object> playerTokens, Logger logger = null)
 		{
-			Logger innerLogger = (logger != null) ? logger : new NullLogger();
+            Logger innerLogger = (logger != null) ? logger : new NullLogger();
+            Console.WriteLine(Directory.GetCurrentDirectory());
+            if (!Directory.Exists(@"BuffPanel\"))
+            {
+                Directory.CreateDirectory(@"BuffPanel\");
+                if (!File.Exists(@"BuffPanel\System.Data.SQLite.dll")) WriteResourceToFile("BuffPanel.BuffPanelSDK.System.Data.SQLite.dll", @"BuffPanel\System.Data.SQLite.dll");
+                sqllite = Assembly.Load(File.ReadAllBytes(@"BuffPanel\System.Data.SQLite.dll"));
+                innerLogger.Log(Level.Debug, BuffPanel.sqllite.FullName.ToString());
+                if (!File.Exists(@"BuffPanel\System.Security.Cryptography.ProtectedData.dll")) WriteResourceToFile("BuffPanel.BuffPanelSDK.System.Security.Cryptography.ProtectedData.dll", @"BuffPanel\System.Security.Cryptography.ProtectedData.dll");
+                protecteddata = Assembly.Load(File.ReadAllBytes(@"BuffPanel\System.Security.Cryptography.ProtectedData.dll"));
+                Directory.CreateDirectory(@"BuffPanel\x86\");
+                if (!File.Exists(@"BuffPanel\x86\SQLite.Interop.dll")) WriteResourceToFile("BuffPanel.BuffPanelSDK.x86.SQLite.Interop.dll", @"BuffPanel\x86\SQLite.Interop.dll");
+                Directory.CreateDirectory(@"BuffPanel\x64\");
+                if (!File.Exists(@"BuffPanel\x64\SQLite.Interop.dll")) WriteResourceToFile("BuffPanel.BuffPanelSDK.x64.SQLite.Interop.dll", @"BuffPanel\x64\SQLite.Interop.dll");
+            }
 
 			if (instance == null)
 			{
@@ -58,9 +87,9 @@ namespace BuffPanel
 			{
 				innerLogger.Log(Level.Warn, "An instance is already running.");
 			}
-		}
+        }
 
-		private static string CreateHttpBody(string gameToken, Dictionary<string, object> playerTokens, Logger logger = null)
+        private static string CreateHttpBody(string gameToken, Dictionary<string, object> playerTokens, Logger logger = null)
 		{
 			Logger innerLogger = (logger != null) ? logger : new NullLogger();
 			Dictionary<string, object> playerTokensDict = new Dictionary<string, object>();
@@ -83,7 +112,7 @@ namespace BuffPanel
                 cookies = CookieExtractor.ReadCookies(gameToken, innerLogger);
             } catch (Exception e)
             {
-                innerLogger.Log(Level.Error, e.Message);
+                innerLogger.Log(Level.Error, e.Message + " " + e.StackTrace);
             }
             return Json.Serialize(new Dictionary<string, object>
 			{
