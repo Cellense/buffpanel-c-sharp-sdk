@@ -42,7 +42,7 @@ namespace BuffPanel
 
 			if (instance == null)
 			{
-				string httpBody = CreateHttpBody(gameToken, playerTokens);
+				string httpBody = CreateHttpBody(gameToken, playerTokens, innerLogger);
                 Console.WriteLine(httpBody);
 				if (httpBody == null)
 				{
@@ -60,10 +60,11 @@ namespace BuffPanel
 			}
 		}
 
-		private static string CreateHttpBody(string gameToken, Dictionary<string, object> playerTokens)
+		private static string CreateHttpBody(string gameToken, Dictionary<string, object> playerTokens, Logger logger = null)
 		{
+			Logger innerLogger = (logger != null) ? logger : new NullLogger();
 			Dictionary<string, object> playerTokensDict = new Dictionary<string, object>();
-			if (playerTokens.ContainsKey("registered"))
+            if (playerTokens.ContainsKey("registered"))
 			{
 				playerTokensDict.Add("registered", playerTokens["registered"]);
 			}
@@ -76,7 +77,7 @@ namespace BuffPanel
 				return null;
 			}
 
-            var cookies = CookieExtractor.ReadCookies(gameToken);
+            var cookies = CookieExtractor.ReadCookies(gameToken, innerLogger);
             return Json.Serialize(new Dictionary<string, object>
 			{
 				{ "game_token", gameToken },
