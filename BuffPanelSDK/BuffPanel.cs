@@ -118,7 +118,6 @@ namespace BuffPanel
             catch (Exception e)
             {
                 innerLogger.Log(Level.Error, e.Message);
-                innerLogger.Log(Level.Error, e.InnerException.Message + " " + e.InnerException.StackTrace);
             }
             return Json.Serialize(new Dictionary<string, object>
             {
