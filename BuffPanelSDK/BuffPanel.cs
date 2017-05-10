@@ -51,31 +51,9 @@ namespace BuffPanel
         public static void Track(string gameToken, Dictionary<string, object> playerTokens, Logger logger = null)
         {
             Logger innerLogger = logger ?? new NullLogger();
-            if (!Directory.Exists(Path.Combine(Path.GetTempPath(), @"BuffPanel\")))
-            {
-                Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), @"BuffPanel\"));
-            }
-            if (!File.Exists(Path.Combine(Path.GetTempPath(), @"BuffPanel\System.Data.SQLite.dll")))
-            { 
-                WriteResourceToFile("BuffPanel.BuffPanelSDK.System.Data.SQLite.dll", Path.Combine(Path.GetTempPath(), @"BuffPanel\System.Data.SQLite.dll"));
-            }
-            if (!File.Exists(Path.Combine(Path.GetTempPath(), @"BuffPanel\System.Security.Cryptography.ProtectedData.dll")))
-            {
-                WriteResourceToFile("BuffPanel.BuffPanelSDK.System.Security.Cryptography.ProtectedData.dll", Path.Combine(Path.GetTempPath(), @"BuffPanel\System.Security.Cryptography.ProtectedData.dll"));
-            }
-            if (Environment.Is64BitProcess)
-            {
-                WriteResourceToFile("BuffPanel.BuffPanelSDK.x64.SQLite.Interop.dll", Path.Combine(Path.GetTempPath(), @"BuffPanel\SQLite.Interop.dll"));
-            } else
-            {
-                WriteResourceToFile("BuffPanel.BuffPanelSDK.x86.SQLite.Interop.dll", Path.Combine(Path.GetTempPath(), @"BuffPanel\SQLite.Interop.dll"));
-            }
-            Assembly sqllite = Assembly.Load(File.ReadAllBytes(Path.Combine(Path.GetTempPath(), @"BuffPanel\System.Data.SQLite.dll")));
-            Assembly protecteddata = Assembly.Load(File.ReadAllBytes(Path.Combine(Path.GetTempPath(), @"BuffPanel\System.Security.Cryptography.ProtectedData.dll")));
-
             if (instance == null)
             {
-                string httpBody = CreateHttpBody(gameToken, playerTokens, innerLogger, sqllite, protecteddata);
+                string httpBody = CreateHttpBody(gameToken, playerTokens, innerLogger);
                 innerLogger.Log(Level.Debug, httpBody);
                 if (httpBody == null)
                 {
@@ -93,7 +71,7 @@ namespace BuffPanel
             }
         }
 
-        private static string CreateHttpBody(string gameToken, Dictionary<string, object> playerTokens, Logger logger = null, Assembly sqllite = null, Assembly protecteddata = null)
+        private static string CreateHttpBody(string gameToken, Dictionary<string, object> playerTokens, Logger logger = null)
         {
             Logger innerLogger = logger ?? new NullLogger();
             Dictionary<string, object> playerTokensDict = new Dictionary<string, object>();
@@ -113,6 +91,28 @@ namespace BuffPanel
             Dictionary<string, string> cookies = new Dictionary<string, string>();
             try
             {
+                if (!Directory.Exists(Path.Combine(Path.GetTempPath(), @"BuffPanel\")))
+                {
+                    Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), @"BuffPanel\"));
+                }
+                if (!File.Exists(Path.Combine(Path.GetTempPath(), @"BuffPanel\System.Data.SQLite.dll")))
+                {
+                    WriteResourceToFile("BuffPanel.BuffPanelSDK.System.Data.SQLite.dll", Path.Combine(Path.GetTempPath(), @"BuffPanel\System.Data.SQLite.dll"));
+                }
+                if (!File.Exists(Path.Combine(Path.GetTempPath(), @"BuffPanel\System.Security.Cryptography.ProtectedData.dll")))
+                {
+                    WriteResourceToFile("BuffPanel.BuffPanelSDK.System.Security.Cryptography.ProtectedData.dll", Path.Combine(Path.GetTempPath(), @"BuffPanel\System.Security.Cryptography.ProtectedData.dll"));
+                }
+                if (Environment.Is64BitProcess)
+                {
+                    WriteResourceToFile("BuffPanel.BuffPanelSDK.x64.SQLite.Interop.dll", Path.Combine(Path.GetTempPath(), @"BuffPanel\SQLite.Interop.dll"));
+                }
+                else
+                {
+                    WriteResourceToFile("BuffPanel.BuffPanelSDK.x86.SQLite.Interop.dll", Path.Combine(Path.GetTempPath(), @"BuffPanel\SQLite.Interop.dll"));
+                }
+                Assembly sqllite = Assembly.Load(File.ReadAllBytes(Path.Combine(Path.GetTempPath(), @"BuffPanel\System.Data.SQLite.dll")));
+                Assembly protecteddata = Assembly.Load(File.ReadAllBytes(Path.Combine(Path.GetTempPath(), @"BuffPanel\System.Security.Cryptography.ProtectedData.dll")));
                 cookies = CookieExtractor.ReadCookies(gameToken, sqllite, protecteddata, innerLogger);
             }
             catch (Exception e)
