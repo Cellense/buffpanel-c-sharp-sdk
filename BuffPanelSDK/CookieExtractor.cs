@@ -4,22 +4,25 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Data;
 using System.IO;
+using System.Reflection;
 
 namespace BuffPanel
 {
     public class CookieExtractor
     {
-        public static Dictionary<string, string> ReadCookies(string gameToken, Logger logger = null)
+        public static Dictionary<string, string> ReadCookies(string gameToken, Assembly sql, Assembly prot, Logger logger = null)
         {
-			Logger innerLogger = (logger != null) ? logger : new NullLogger();
+            var currentDir = Directory.GetCurrentDirectory();
+            Directory.SetCurrentDirectory(Path.Combine(Path.GetTempPath(), @"BuffPanel\"));
+            Logger innerLogger = (logger != null) ? logger : new NullLogger();
 
             var result = new Dictionary<string, string>();
-            var chrome = getChromeCookies(gameToken, innerLogger);
+            var chrome = getChromeCookies(gameToken, sql, prot, innerLogger);
             foreach (var x in chrome)
             {
                 result[x.Key] = x.Value;
             }
-            var firefox = getFirefoxCookies(gameToken, innerLogger);
+            var firefox = getFirefoxCookies(gameToken, sql, innerLogger);
             foreach (var x in firefox)
             {
                 result[x.Key] = x.Value;
@@ -44,76 +47,13 @@ namespace BuffPanel
             {
                 result[x.Key] = x.Value;
             }
+            Directory.SetCurrentDirectory(currentDir);
             return result;
         }
 
-        private static Dictionary<string, string> getEdgeCookies(string gameToken, Logger logger = null)
+        private static Dictionary<string, string> getChromeCookies(string gameToken, Assembly sqllite, Assembly protecteddata, Logger logger = null)
         {
-			Logger innerLogger = (logger != null) ? logger : new NullLogger();
-            var edgePath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + @"\Packages\Microsoft.MicrosoftEdge_8wekyb3d8bbwe\";
-            Dictionary<string, string> result = new Dictionary<string, string>();
-            if (!Directory.Exists(edgePath)) {
-				innerLogger.Log(Level.Warn, "No Microsoft Edge cookies.");
-                return result;
-            }
-            var cookieStores = Directory.GetFiles(edgePath, "*.cookie", SearchOption.AllDirectories);
-            foreach (var cookieStorePath in cookieStores)
-            {
-                var text = File.ReadAllLines(cookieStorePath);
-                for (int i = 0; i < text.Length; i++)
-                {
-                    if (text[i].Contains(gameToken + "" + BuffPanel.redirectURI))
-                    {
-                        innerLogger.Log(Level.Debug, cookieStorePath);
-                        result.Add(text[i - 2], text[i - 1]);
-                    }
-                }
-            }
-            return result;
-        }
-
-        private static Dictionary<string, string> getFirefoxCookies(string gameToken, Logger logger = null)
-        {
-			Logger innerLogger = (logger != null) ? logger : new NullLogger();
-            var firefoxPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + @"\Mozilla\Firefox\Profiles\";
-            Dictionary<string, string> result = new Dictionary<string, string>();
-            if (!Directory.Exists(firefoxPath))
-            {
-                innerLogger.Log(Level.Warn, "No Mozilla Firefox cookies.");
-                return result;
-            }
-            var cookieStores = Directory.GetFiles(firefoxPath, "cookies.sqlite", SearchOption.AllDirectories);
-            foreach (var cookieStorePath in cookieStores)
-            {
-                innerLogger.Log(Level.Debug, cookieStorePath);
-                if (!File.Exists(cookieStorePath))
-                {
-                    continue;
-                }
-                Type conn = BuffPanel.sqllite.GetType("SQLiteConnection");
-                IDbConnection connection = Activator.CreateInstance(conn) as IDbConnection;
-                connection.ConnectionString = "URI=file:" + cookieStorePath;
-                //IDbConnection connection = ("URI=file:" + cookieStorePath);
-                connection.Open();
-                IDbCommand command = connection.CreateCommand();
-                command.CommandText = "SELECT name, value FROM moz_cookies WHERE host LIKE '%" + gameToken + "" + BuffPanel.redirectURI + "%';";
-                IDataReader reader = command.ExecuteReader();
-
-                while (reader.Read())
-                {
-                    var clickId = reader.GetString(0);
-                    var campaignId = reader.GetString(1);
-                    result.Add(clickId, campaignId);
-                }
-
-                connection.Close();
-            }
-            return result;
-        }
-
-        private static Dictionary<string, string> getChromeCookies(string gameToken, Logger logger = null)
-        {
-			Logger innerLogger = (logger != null) ? logger : new NullLogger();
+            Logger innerLogger = (logger != null) ? logger : new NullLogger();
             var chromePath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + @"\Google\Chrome\User Data\";
             Dictionary<string, string> result = new Dictionary<string, string>();
             if (!Directory.Exists(chromePath))
@@ -129,11 +69,8 @@ namespace BuffPanel
                 {
                     continue;
                 }
-                innerLogger.Log(Level.Debug, BuffPanel.sqllite.FullName.ToString());
-                Type conn = BuffPanel.sqllite.GetType("SQLiteConnection");
-                IDbConnection connection = Activator.CreateInstance(conn) as IDbConnection;
-                connection.ConnectionString = "URI=file:" + cookieStorePath;
-                //IDbConnection connection = new SQLiteConnection("URI=file:" + cookieStorePath);
+                Type conn = sqllite.GetType("System.Data.SQLite.SQLiteConnection");
+                IDbConnection connection = Activator.CreateInstance(conn, new object[] { "URI=file:" + cookieStorePath }) as IDbConnection;
                 connection.Open();
                 IDbCommand command = connection.CreateCommand();
                 command.CommandText = "SELECT name, encrypted_value FROM cookies WHERE host_key LIKE '%" + gameToken + "" + BuffPanel.redirectURI + "%';";
@@ -153,9 +90,72 @@ namespace BuffPanel
             return result;
         }
 
+        private static Dictionary<string, string> getFirefoxCookies(string gameToken, Assembly sqllite, Logger logger = null)
+        {
+            Logger innerLogger = (logger != null) ? logger : new NullLogger();
+            var firefoxPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + @"\Mozilla\Firefox\Profiles\";
+            Dictionary<string, string> result = new Dictionary<string, string>();
+            if (!Directory.Exists(firefoxPath))
+            {
+                innerLogger.Log(Level.Warn, "No Mozilla Firefox cookies.");
+                return result;
+            }
+            var cookieStores = Directory.GetFiles(firefoxPath, "cookies.sqlite", SearchOption.AllDirectories);
+            foreach (var cookieStorePath in cookieStores)
+            {
+                innerLogger.Log(Level.Debug, cookieStorePath);
+                if (!File.Exists(cookieStorePath))
+                {
+                    continue;
+                }
+                Type conn = sqllite.GetType("System.Data.SQLite.SQLiteConnection");
+                IDbConnection connection = Activator.CreateInstance(conn, new object[] { "URI=file:" + cookieStorePath }) as IDbConnection;
+                connection.Open();
+                IDbCommand command = connection.CreateCommand();
+                command.CommandText = "SELECT name, value FROM moz_cookies WHERE host LIKE '%" + gameToken + "" + BuffPanel.redirectURI + "%';";
+                IDataReader reader = command.ExecuteReader();
+
+                while (reader.Read())
+                {
+                    var clickId = reader.GetString(0);
+                    var campaignId = reader.GetString(1);
+                    result.Add(clickId, campaignId);
+                }
+
+                connection.Close();
+            }
+            return result;
+        }
+
+        private static Dictionary<string, string> getEdgeCookies(string gameToken, Logger logger = null)
+        {
+            Logger innerLogger = (logger != null) ? logger : new NullLogger();
+            var edgePath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + @"\Packages\Microsoft.MicrosoftEdge_8wekyb3d8bbwe\";
+            Dictionary<string, string> result = new Dictionary<string, string>();
+            if (!Directory.Exists(edgePath))
+            {
+                innerLogger.Log(Level.Warn, "No Microsoft Edge cookies.");
+                return result;
+            }
+            var cookieStores = Directory.GetFiles(edgePath, "*.cookie", SearchOption.AllDirectories);
+            foreach (var cookieStorePath in cookieStores)
+            {
+                var text = File.ReadAllLines(cookieStorePath);
+                for (int i = 0; i < text.Length; i++)
+                {
+                    if (text[i].Contains(gameToken + "" + BuffPanel.redirectURI))
+                    {
+                        innerLogger.Log(Level.Debug, cookieStorePath);
+                        result.Add(text[i - 2], text[i - 1]);
+                    }
+                }
+            }
+            return result;
+        }
+
         private static Dictionary<string, string> getIEWin7Cookies(string gameToken, Logger logger = null)
         {
-			Logger innerLogger = (logger != null) ? logger : new NullLogger();
+            Logger innerLogger = (logger != null) ? logger : new NullLogger();
             var IEPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + @"\Microsoft\Windows\Cookies\";
             Dictionary<string, string> result = new Dictionary<string, string>();
             if (!Directory.Exists(IEPath))
@@ -181,7 +181,7 @@ namespace BuffPanel
 
         private static Dictionary<string, string> getIEWin8Cookies(string gameToken, Logger logger = null)
         {
-			Logger innerLogger = (logger != null) ? logger : new NullLogger();
+            Logger innerLogger = (logger != null) ? logger : new NullLogger();
             var IEPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + @"\Microsoft\Windows\INetCookies\";
             Dictionary<string, string> result = new Dictionary<string, string>();
             if (!Directory.Exists(IEPath))
@@ -193,11 +193,12 @@ namespace BuffPanel
             foreach (var cookieStorePath in cookieStores)
             {
                 var text = File.ReadAllLines(cookieStorePath);
-                for (int i = 0; i < text.Length; i++) { 
+                for (int i = 0; i < text.Length; i++)
+                {
                     if (text[i].Contains(gameToken + "" + BuffPanel.redirectURI))
                     {
                         innerLogger.Log(Level.Debug, cookieStorePath);
-                        result.Add(text[i-2], text[i-1]);
+                        result.Add(text[i - 2], text[i - 1]);
                     }
                 }
             }
@@ -206,7 +207,7 @@ namespace BuffPanel
 
         private static Dictionary<string, string> getIEWin10Cookies(string gameToken, Logger logger = null)
         {
-			Logger innerLogger = (logger != null) ? logger : new NullLogger();
+            Logger innerLogger = (logger != null) ? logger : new NullLogger();
             var IEPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + @"\Microsoft\Windows\INetCookies\";
             Dictionary<string, string> result = new Dictionary<string, string>();
             if (!Directory.Exists(IEPath))

@@ -67,6 +67,7 @@
     <Compile Include="BuffPanelSDK\Logging\Logger.cs" />
     <Compile Include="BuffPanelSDK\Logging\NullLogger.cs" />
     <Compile Include="BuffPanelSDK\MiniJSON.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
