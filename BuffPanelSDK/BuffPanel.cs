@@ -21,9 +21,9 @@ namespace BuffPanel
         private static int baseRetryTimeout = 200;
         private static int maxRetries = 10;
 
-        public static string serviceHostname = "staging.buffpanel.com";
+        public static string serviceHostname = "buffpanel.com";
         public static string servicePath = "/api/run";
-        public static string redirectURI = ".redirect.staging";
+        public static List<string> redirectURIs = new List<string>();
 
         private static Thread worker = null;
         private static BuffPanel instance = null;
@@ -51,6 +51,7 @@ namespace BuffPanel
         public static void Track(string gameToken, Dictionary<string, object> playerTokens, Logger logger = null)
         {
             Logger innerLogger = logger ?? new NullLogger();
+						AddAlias(gameToken + ".trbt.it");
             if (instance == null)
             {
                 string httpBody = CreateHttpBody(gameToken, playerTokens, innerLogger);
@@ -68,6 +69,13 @@ namespace BuffPanel
             else
             {
                 innerLogger.Log(Level.Warn, "An instance is already running.");
+            }
+        }
+
+				public static void AddAlias(string alias)
+        {
+            if (!redirectURIs.Contains(alias)) {
+                redirectURIs.Add(alias);
             }
         }
 
