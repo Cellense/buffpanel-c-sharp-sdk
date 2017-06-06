@@ -72,7 +72,7 @@ namespace BuffPanel
             }
         }
 
-				public static void AddAlias(string alias)
+        public static void AddAlias(string alias)
         {
             if (!redirectURIs.Contains(alias)) {
                 redirectURIs.Add(alias);
