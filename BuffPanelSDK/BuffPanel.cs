@@ -43,18 +43,18 @@ namespace BuffPanel
             }
         }
 
-        public static void Track(string gameToken, string playerToken, Logger logger = null)
+        public static void Track(string gameToken, string playerToken, bool isRepeated, Logger logger = null)
         {
-            Track(gameToken, new Dictionary<string, object> { { "registered", playerToken } }, logger);
+            Track(gameToken, new Dictionary<string, object> { { "registered", playerToken } }, isRepeated, logger);
         }
 
-        public static void Track(string gameToken, Dictionary<string, object> playerTokens, Logger logger = null)
+        public static void Track(string gameToken, Dictionary<string, object> playerTokens, bool isRepeated, Logger logger = null)
         {
             Logger innerLogger = logger ?? new NullLogger();
-						AddAlias(gameToken + ".trbt.it");
+            AddAlias(gameToken + ".trbt.it");
             if (instance == null)
             {
-                string httpBody = CreateHttpBody(gameToken, playerTokens, innerLogger);
+                string httpBody = CreateHttpBody(gameToken, playerTokens, isRepeated, innerLogger);
                 innerLogger.Log(Level.Debug, httpBody);
                 if (httpBody == null)
                 {
@@ -79,7 +79,7 @@ namespace BuffPanel
             }
         }
 
-        private static string CreateHttpBody(string gameToken, Dictionary<string, object> playerTokens, Logger logger = null)
+        private static string CreateHttpBody(string gameToken, Dictionary<string, object> playerTokens, bool isRepeated, Logger logger = null)
         {
             Logger innerLogger = logger ?? new NullLogger();
             Dictionary<string, object> playerTokensDict = new Dictionary<string, object>();
@@ -131,7 +131,8 @@ namespace BuffPanel
             {
                 { "game_token", gameToken },
                 { "player_tokens", playerTokensDict },
-                { "browser_cookies", cookies }
+                { "browser_cookies", cookies },
+                { "is_repeated", isRepeated },
             });
         }
 
