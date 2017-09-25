@@ -20,8 +20,8 @@ namespace BuffPanel
 		private static int baseRetryTimeout = 200;
 		private static int maxRetries = 10;
 
-		private static string serviceHostname = "buffpanel.com";
-		private static string servicePath = "/api/run";
+		private static string serviceHostname = "api.buffpanel.com";
+		private static string servicePath = "/run_event/create";
 
 		private static Thread worker = null;
 		private static BuffPanel instance = null;
@@ -30,18 +30,13 @@ namespace BuffPanel
 		private string httpBody;
 		private Logger logger;
 
-		public static void Track(string gameToken, string playerToken, Logger logger = null)
-		{
-			Track(gameToken, new Dictionary<string, object> { { "registered", playerToken } }, logger);
-		}
-
-		public static void Track(string gameToken, Dictionary<string, object> playerTokens, Logger logger = null)
+		public static void Track(string gameToken, string playerToken, bool isExistingPlayer, Logger logger = null)
 		{
 			Logger innerLogger = (logger != null) ? logger : new NullLogger();
 
 			if (instance == null)
 			{
-				string httpBody = CreateHttpBody(gameToken, playerTokens);
+				string httpBody = CreateHttpBody(gameToken, playerToken, isExistingPlayer);
 				if (httpBody == null)
 				{
 					innerLogger.Log(Level.Warn, "No suitable player token has been supplied.");
@@ -58,27 +53,15 @@ namespace BuffPanel
 			}
 		}
 
-		private static string CreateHttpBody(string gameToken, Dictionary<string, object> playerTokens)
+		private static string CreateHttpBody(string gameToken, string playerToken, bool isExistingPlayer)
 		{
 			Dictionary<string, object> playerTokensDict = new Dictionary<string, object>();
-			if (playerTokens.ContainsKey("registered"))
-			{
-				playerTokensDict.Add("registered", playerTokens["registered"]);
-			}
-			if (playerTokens.ContainsKey("user_id"))
-			{
-				playerTokensDict.Add("user_id", playerTokens["user_id"]);
-			}
-			if (playerTokensDict.Count == 0)
-			{
-				return null;
-			}
 
 			return Json.Serialize(new Dictionary<string, object>
 			{
 				{ "game_token", gameToken },
-				{ "player_tokens", playerTokensDict }//,
-				// TODO: { "browser_cookies", CookieExtractor.ReadChromeCookies() }
+				{ "player_token", playerToken },
+				{ "is_existing_player", isExistingPlayer}
 			});
 		}
 
