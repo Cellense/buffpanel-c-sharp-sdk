@@ -36,7 +36,11 @@ namespace BuffPanel
 
 			if (instance == null)
 			{
-				string httpBody = CreateHttpBody(gameToken, playerToken, isExistingPlayer);
+				string httpBody = Json.Serialize(new Dictionary<string, object>	{
+					{ "game_token", gameToken },
+					{ "player_token", playerToken },
+					{ "is_existing_player", isExistingPlayer},
+				});
 				if (httpBody == null)
 				{
 					innerLogger.Log(Level.Warn, "No suitable player token has been supplied.");
@@ -53,16 +57,32 @@ namespace BuffPanel
 			}
 		}
 
-		private static string CreateHttpBody(string gameToken, string playerToken, bool isExistingPlayer)
+		public static void Track(string gameToken, string playerToken, bool isExistingPlayer, Dictionary<string, string> attributes, Logger logger = null)
 		{
-			Dictionary<string, object> playerTokensDict = new Dictionary<string, object>();
+			Logger innerLogger = (logger != null) ? logger : new NullLogger();
 
-			return Json.Serialize(new Dictionary<string, object>
+			if (instance == null)
 			{
-				{ "game_token", gameToken },
-				{ "player_token", playerToken },
-				{ "is_existing_player", isExistingPlayer}
-			});
+				string httpBody = Json.Serialize(new Dictionary<string, object>	{
+					{ "game_token", gameToken },
+					{ "player_token", playerToken },
+					{ "is_existing_player", isExistingPlayer},
+					{ "attributes", attributes}
+				});
+				if (httpBody == null)
+				{
+					innerLogger.Log(Level.Warn, "No suitable player token has been supplied.");
+					return;
+				}
+
+				instance = new BuffPanel("http://" + serviceHostname + servicePath, httpBody, innerLogger);
+				worker = new Thread(new ThreadStart(instance.SendRequest));
+				worker.Start();
+			}
+			else
+			{
+				innerLogger.Log(Level.Warn, "An instance is already running.");
+			}
 		}
 
 		public static void Terminate()
