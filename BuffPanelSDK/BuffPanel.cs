@@ -23,6 +23,8 @@ namespace BuffPanel
 		private static string serviceHostname = "api.buffpanel.com";
 		private static string servicePath = "/run_event/create";
 
+		public static string version = "csharp_0.0.1";
+
 		private static Thread worker = null;
 		private static BuffPanel instance = null;
 
@@ -40,6 +42,7 @@ namespace BuffPanel
 					{ "game_token", gameToken },
 					{ "player_token", playerToken },
 					{ "is_existing_player", isExistingPlayer},
+					{ "version", version }
 				});
 				if (httpBody == null)
 				{
@@ -67,7 +70,8 @@ namespace BuffPanel
 					{ "game_token", gameToken },
 					{ "player_token", playerToken },
 					{ "is_existing_player", isExistingPlayer},
-					{ "attributes", attributes}
+					{ "attributes", attributes},
+					{ "version", version }
 				});
 				if (httpBody == null)
 				{
