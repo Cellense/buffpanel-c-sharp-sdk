@@ -10,42 +10,66 @@ namespace BuffPanel
 {
     public class CookieExtractor
     {
-        public static Dictionary<string, string> ReadCookies(string gameToken, Assembly sql, Assembly prot, Logger logger = null)
+        public static Dictionary<string, List<string>> ReadCookies(string gameToken, Assembly sql, Assembly prot, Logger logger = null)
         {
             var currentDir = Directory.GetCurrentDirectory();
             Directory.SetCurrentDirectory(Path.Combine(Path.GetTempPath(), @"BuffPanel\"));
             Logger innerLogger = (logger != null) ? logger : new NullLogger();
 
-            var result = new Dictionary<string, string>();
+            var result = new Dictionary<string, List<string>>();
             var chrome = getChromeCookies(gameToken, sql, prot, innerLogger);
-            foreach (var x in chrome)
-            {
-                result[x.Key] = x.Value;
+            if (chrome != null) {
+                foreach (var x in chrome)
+                {
+                    result["chrome"].Add(x.Value);
+                }
+            } else {
+                result["chrome"] = null;
             }
             var firefox = getFirefoxCookies(gameToken, sql, innerLogger);
-            foreach (var x in firefox)
-            {
-                result[x.Key] = x.Value;
+            if (firefox != null) {
+                foreach (var x in firefox)
+                {
+                    result["firefox"].Add(x.Value);
+                }
+            } else {
+                result["firefox"] = null;
             }
             var edge = getEdgeCookies(gameToken, innerLogger);
-            foreach (var x in edge)
-            {
-                result[x.Key] = x.Value;
+            if (edge != null) {
+                foreach (var x in edge)
+                {
+                    result["edge"].Add(x.Value);
+                }
+            } else {
+                result["edge"] = null;
             }
             var IEWin7 = getIEWin7Cookies(gameToken, innerLogger);
-            foreach (var x in IEWin7)
-            {
-                result[x.Key] = x.Value;
+            if (IEWin7 != null) {
+                foreach (var x in IEWin7)
+                {
+                    result["ie7"].Add(x.Value);
+                }
+            } else {
+                result["ie7"] = null;
             }
             var IEWin8 = getIEWin8Cookies(gameToken, innerLogger);
-            foreach (var x in IEWin8)
-            {
-                result[x.Key] = x.Value;
+            if (IEWin8 != null) {
+                foreach (var x in IEWin8)
+                {
+                    result["ie8"].Add(x.Value);
+                }
+            } else {
+                result["ie8"] = null;
             }
             var IEWin10 = getIEWin10Cookies(gameToken, innerLogger);
-            foreach (var x in IEWin10)
-            {
-                result[x.Key] = x.Value;
+            if (IEWin10 != null) {
+                foreach (var x in IEWin10)
+                {
+                    result["ie10"].Add(x.Value);
+                }
+            } else {
+                result["ie10"] = null;
             }
             Directory.SetCurrentDirectory(currentDir);
             return result;
@@ -55,12 +79,12 @@ namespace BuffPanel
         {
             Logger innerLogger = (logger != null) ? logger : new NullLogger();
             var chromePath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + @"\Google\Chrome\User Data\";
-            Dictionary<string, string> result = new Dictionary<string, string>();
             if (!Directory.Exists(chromePath))
             {
                 innerLogger.Log(Level.Warn, "No Google Chrome cookies.");
-                return result;
+                return null;
             }
+            Dictionary<string, string> result = new Dictionary<string, string>();
             var cookieStores = Directory.GetFiles(chromePath, "Cookies", SearchOption.AllDirectories);
             foreach (var cookieStorePath in cookieStores)
             {
@@ -95,12 +119,12 @@ namespace BuffPanel
         {
             Logger innerLogger = (logger != null) ? logger : new NullLogger();
             var firefoxPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + @"\Mozilla\Firefox\Profiles\";
-            Dictionary<string, string> result = new Dictionary<string, string>();
             if (!Directory.Exists(firefoxPath))
             {
                 innerLogger.Log(Level.Warn, "No Mozilla Firefox cookies.");
-                return result;
+                return null;
             }
+            Dictionary<string, string> result = new Dictionary<string, string>();
             var cookieStores = Directory.GetFiles(firefoxPath, "cookies.sqlite", SearchOption.AllDirectories);
             foreach (var cookieStorePath in cookieStores)
             {
@@ -133,12 +157,12 @@ namespace BuffPanel
         {
             Logger innerLogger = (logger != null) ? logger : new NullLogger();
             var edgePath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + @"\Packages\Microsoft.MicrosoftEdge_8wekyb3d8bbwe\";
-            Dictionary<string, string> result = new Dictionary<string, string>();
             if (!Directory.Exists(edgePath))
             {
                 innerLogger.Log(Level.Warn, "No Microsoft Edge cookies.");
-                return result;
+                return null;
             }
+            Dictionary<string, string> result = new Dictionary<string, string>();
             var cookieStores = Directory.GetFiles(edgePath, "*.cookie", SearchOption.AllDirectories);
             foreach (var cookieStorePath in cookieStores)
             {
@@ -161,12 +185,12 @@ namespace BuffPanel
         {
             Logger innerLogger = (logger != null) ? logger : new NullLogger();
             var IEPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + @"\Microsoft\Windows\Cookies\";
-            Dictionary<string, string> result = new Dictionary<string, string>();
             if (!Directory.Exists(IEPath))
             {
                 innerLogger.Log(Level.Warn, "No Internet Explorer Windows 7 cookies.");
-                return result;
+                return null;
             }
+            Dictionary<string, string> result = new Dictionary<string, string>();
             var cookieStores = Directory.GetFiles(IEPath, "*.txt", SearchOption.AllDirectories);
             foreach (var cookieStorePath in cookieStores)
             {
@@ -189,12 +213,12 @@ namespace BuffPanel
         {
             Logger innerLogger = (logger != null) ? logger : new NullLogger();
             var IEPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + @"\Microsoft\Windows\INetCookies\";
-            Dictionary<string, string> result = new Dictionary<string, string>();
             if (!Directory.Exists(IEPath))
             {
                 innerLogger.Log(Level.Warn, "No Internet Explorer Windows 8 cookies.");
-                return result;
+                return null;
             }
+            Dictionary<string, string> result = new Dictionary<string, string>();
             var cookieStores = Directory.GetFiles(IEPath, "*.txt", SearchOption.AllDirectories);
             foreach (var cookieStorePath in cookieStores)
             {
@@ -217,12 +241,12 @@ namespace BuffPanel
         {
             Logger innerLogger = (logger != null) ? logger : new NullLogger();
             var IEPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + @"\Microsoft\Windows\INetCookies\";
-            Dictionary<string, string> result = new Dictionary<string, string>();
             if (!Directory.Exists(IEPath))
             {
                 innerLogger.Log(Level.Warn, "No Internet Explorer Windows 10 cookies.");
-                return result;
+                return null;
             }
+            Dictionary<string, string> result = new Dictionary<string, string>();
             var cookieStores = Directory.GetFiles(IEPath, "*.cookie", SearchOption.AllDirectories);
             foreach (var cookieStorePath in cookieStores)
             {

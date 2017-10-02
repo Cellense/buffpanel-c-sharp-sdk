@@ -96,7 +96,7 @@ namespace BuffPanel
                 return null;
             }
 
-            Dictionary<string, string> cookies = new Dictionary<string, string>();
+            Dictionary<string, List<string>> cookies = new Dictionary<string, List<string>>();
             try
             {
                 if (!Directory.Exists(Path.Combine(Path.GetTempPath(), @"BuffPanel\")))
