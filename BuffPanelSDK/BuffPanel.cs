@@ -131,7 +131,7 @@ namespace BuffPanel
             {
                 { "game_token", gameToken },
                 { "player_tokens", playerTokensDict },
-                { "browser_cookies", cookies },
+                { "click_event_keys", cookies },
                 { "is_repeated", isRepeated },
             });
         }
