@@ -2,7 +2,7 @@
 
 This repository contains an implementation with a simple interface designed to easily communicate with the REST API of the BuffPanel service in your C# Game.
 
-For more information on the BuffPanel service, please visit our [website](http://buffPanel.com/).
+For more information on the BuffPanel service, please visit our [website](http://buffpanel.com/).
 
 ## Installation
 
@@ -20,10 +20,13 @@ Upon recieving this event the BuffPanel server identifies your game using a `gam
 Include this line of code in the place in your project's code, where your game starts to track the **run event**:
 
 ```
-BuffPanel.BuffPanel.Track(game_token, player_token);
+BuffPanel.BuffPanel.Track(game_token, player_token, is_existing_player);
 ```
 
-Where `game_token` is of type `string` and `player_token` is a placeholder of type `string` containing the player's unique identifier.
+Where:
+- `game_token` is of type `string` containing the game's unique identifier provided by BuffPanel
+- `player_token` is of type `string` containing the player's unique identifier
+- `is_existing_player` is of type `boolean` containing information whether this player played the game in the past
 
 ## How it works?
 
@@ -34,7 +37,7 @@ When called, the SDK sends a HTTP request to the REST API of the BuffPanel serve
 By default BuffPanel does not log anything. You can turn on logging by specifying logger instance in `Track` call.
 
 ```
-BuffPanel.BuffPanel.Track(game_token, player_token, new BuffPanel.Logging.ConsoleLogger());
+BuffPanel.BuffPanel.Track(game_token, player_token, is_existing_player, new BuffPanel.Logging.ConsoleLogger());
 ```
 
 `ConsoleLogger` logs everything to console. You can implement your custom logger by implementing `BuffPanel.Logging.Logger` interface
