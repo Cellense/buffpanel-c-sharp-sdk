@@ -7,176 +7,270 @@ using System.IO;
 
 namespace BuffPanel
 {
-	public class BuffPanel
-	{
-		internal class BuffPanelException: Exception
-		{
-			public BuffPanelException(string message): base(message)
-			{
-			}
-		}
+    public class BuffPanel
+    {
+        internal class BuffPanelException : Exception
+        {
+            public BuffPanelException(string message) : base(message)
+            {
+            }
+        }
 
-		private static int requestTimeout = 10000;
-		private static int baseRetryTimeout = 200;
-		private static int maxRetries = 10;
+        private static int requestTimeout = 10000;
+        private static int baseRetryTimeout = 200;
+        private static int maxRetries = 10;
 
-		private static string serviceHostname = "api.buffpanel.com";
-		private static string servicePath = "/run_event/create";
+        private static string serviceHostname = "asdfapi.buffpanel.com";
+        private static string servicePath = "/run_event/create";
 
-		public static string version = "csharp_0.0.1";
+        public static string version = "csharp_0.0.1";
 
-		private static Thread worker = null;
-		private static BuffPanel instance = null;
+        private static Thread worker = null;
+        private static BuffPanel instance = null;
 
-		private string url;
-		private string httpBody;
-		private Logger logger;
+        private string url;
+        private string httpBody;
+        private Logger logger;
 
-		public static void Track(string gameToken, string playerToken, bool isExistingPlayer, Logger logger = null)
-		{
-			Logger innerLogger = (logger != null) ? logger : new NullLogger();
+        public static void Track(string gameToken, bool isExistingPlayer,Logger logger = null)
+        {
+            Logger innerLogger = (logger != null) ? logger : new NullLogger();
+            
+            if (instance == null)
+            {
+                string playerToken = "";
+                try
+                {
+                    playerToken = GetPlayerToken(gameToken);
+                }
+                catch (Exception)
+                {
+                    playerToken = "unknown_player";
+                }
 
-			if (instance == null)
-			{
-				string httpBody = Json.Serialize(new Dictionary<string, object>	{
-					{ "game_token", gameToken },
-					{ "player_token", playerToken },
-					{ "is_existing_player", isExistingPlayer},
-					{ "version", version }
-				});
-				if (httpBody == null)
-				{
-					innerLogger.Log(Level.Warn, "No suitable player token has been supplied.");
-					return;
-				}
+                string httpBody = Json.Serialize(new Dictionary<string, object> {
+                    { "game_token", gameToken },
+                    { "player_token", playerToken },
+                    { "is_existing_player", isExistingPlayer},
+                    { "version", version }
+                });
+                if (httpBody == null)
+                {
+                    innerLogger.Log(Level.Warn, "No suitable player token has been supplied.");
+                    return;
+                }
 
-				instance = new BuffPanel("http://" + serviceHostname + servicePath, httpBody, innerLogger);
-				worker = new Thread(new ThreadStart(instance.SendRequest));
-				worker.Start();
-			}
-			else
-			{
-				innerLogger.Log(Level.Warn, "An instance is already running.");
-			}
-		}
+                instance = new BuffPanel("http://" + serviceHostname + servicePath, httpBody, innerLogger);
+                worker = new Thread(new ThreadStart(instance.SendRequest));
+                worker.Start();
+            }
+            else
+            {
+                innerLogger.Log(Level.Warn, "An instance is already running.");
+            }
+        }
 
-		public static void Track(string gameToken, string playerToken, bool isExistingPlayer, Dictionary<string, string> attributes, Logger logger = null)
-		{
-			Logger innerLogger = (logger != null) ? logger : new NullLogger();
+        public static void Track(string gameToken, bool isExistingPlayer, Dictionary<string, string> attributes, Logger logger = null)
+        {
+            Logger innerLogger = (logger != null) ? logger : new NullLogger();
 
-			if (instance == null)
-			{
-				string httpBody = Json.Serialize(new Dictionary<string, object>	{
-					{ "game_token", gameToken },
-					{ "player_token", playerToken },
-					{ "is_existing_player", isExistingPlayer},
-					{ "attributes", attributes},
-					{ "version", version }
-				});
-				if (httpBody == null)
-				{
-					innerLogger.Log(Level.Warn, "No suitable player token has been supplied.");
-					return;
-				}
+            if (instance == null)
+            {
+                string playerToken = "";
+                try
+                {
+                    playerToken = GetPlayerToken(gameToken);
+                }
+                catch (Exception)
+                {
+                    playerToken = "unknown_player";
+                }
 
-				instance = new BuffPanel("http://" + serviceHostname + servicePath, httpBody, innerLogger);
-				worker = new Thread(new ThreadStart(instance.SendRequest));
-				worker.Start();
-			}
-			else
-			{
-				innerLogger.Log(Level.Warn, "An instance is already running.");
-			}
-		}
+                string httpBody = Json.Serialize(new Dictionary<string, object> {
+                    { "game_token", gameToken },
+                    { "player_token", playerToken },
+                    { "is_existing_player", isExistingPlayer},
+                    { "attributes", attributes},
+                    { "version", version }
+                });
+                if (httpBody == null)
+                {
+                    innerLogger.Log(Level.Warn, "No suitable player token has been supplied.");
+                    return;
+                }
 
-		public static void Terminate()
-		{
-			worker.Join();
-			worker = null;
-			instance = null;
-		}
+                instance = new BuffPanel("http://" + serviceHostname + servicePath, httpBody, innerLogger);
+                worker = new Thread(new ThreadStart(instance.SendRequest));
+                worker.Start();
+            }
+            else
+            {
+                innerLogger.Log(Level.Warn, "An instance is already running.");
+            }
+        }
 
-		private BuffPanel(string newUrl, string newHttpBody, Logger newLogger)
-		{
-			this.url = newUrl;
-			this.httpBody = newHttpBody;
-			this.logger = newLogger;
-		}
+        public static void Terminate()
+        {
+            worker.Join();
+            worker = null;
+            instance = null;
+        }
 
-		private void SendRequest()
-		{
-			int currentTimeout = baseRetryTimeout;
+        private BuffPanel(string newUrl, string newHttpBody, Logger newLogger)
+        {
+            this.url = newUrl;
+            this.httpBody = newHttpBody;
+            this.logger = newLogger;
+        }
 
-			for (int i = 0; i < maxRetries; ++i)
-			{
-				try
-				{
-					WebRequest request = CreateRequest();
-					var httpResponse = (HttpWebResponse)request.GetResponse();
+        private void SendRequest()
+        {
+            int currentTimeout = baseRetryTimeout;
 
-					using (var streamReader = new StreamReader(httpResponse.GetResponseStream()))
-					{
-						var result = streamReader.ReadToEnd();
-						if (result == null)
-						{
-							throw new BuffPanelException("The result cannot be read.");
-						}
-						var resultParse = Json.Deserialize(result) as Dictionary<string, object>;
-						if (resultParse == null)
-						{
-							throw new BuffPanelException("The response cannot be parsed.");
-						}
+            for (int i = 0; i < maxRetries; ++i)
+            {
+                try
+                {
+                    WebRequest request = CreateRequest();
+                    var httpResponse = (HttpWebResponse)request.GetResponse();
 
-						if (!(bool)resultParse["success"])
-						{
-							if (this.logger.IsLevelEnabled(Level.Error))
-							{
-								this.logger.Log(Level.Error, "An error has occured : \n" + result);
-							}
+                    using (var streamReader = new StreamReader(httpResponse.GetResponseStream()))
+                    {
+                        var result = streamReader.ReadToEnd();
+                        if (result == null)
+                        {
+                            throw new BuffPanelException("The result cannot be read.");
+                        }
+                        var resultParse = Json.Deserialize(result) as Dictionary<string, object>;
+                        if (resultParse == null)
+                        {
+                            throw new BuffPanelException("The response cannot be parsed.");
+                        }
 
-							break;
-						}
-					}
+                        if (!(bool)resultParse["success"])
+                        {
+                            if (this.logger.IsLevelEnabled(Level.Error))
+                            {
+                                this.logger.Log(Level.Error, "An error has occured : \n" + result);
+                            }
 
-					break;
-				}
-				catch (WebException ex)
-				{
-					if (this.logger.IsLevelEnabled(Level.Error))
-					{
-						this.logger.Log(Level.Error, ex.Message);
-					}
-				}
-				catch (BuffPanelException ex)
-				{
-					if (this.logger.IsLevelEnabled(Level.Error))
-					{
-						this.logger.Log(Level.Error, ex.Message);
-					}
-				}
+                            break;
+                        }
+                    }
 
-				Thread.Sleep(currentTimeout);
-				currentTimeout *= 2;
-			}
-		}
+                    break;
+                }
+                catch (WebException ex)
+                {
+                    if (this.logger.IsLevelEnabled(Level.Error))
+                    {
+                        this.logger.Log(Level.Error, ex.Message);
+                    }
+                }
+                catch (BuffPanelException ex)
+                {
+                    if (this.logger.IsLevelEnabled(Level.Error))
+                    {
+                        this.logger.Log(Level.Error, ex.Message);
+                    }
+                }
 
-		private WebRequest CreateRequest()
-		{
+                Thread.Sleep(currentTimeout);
+                currentTimeout *= 2;
+            }
+        }
 
-			WebRequest request = WebRequest.Create(this.url);
-			request.Method = "POST";
-			request.ContentType = "application/json";
-			request.Timeout = requestTimeout;
+        private WebRequest CreateRequest()
+        {
 
-			using (var streamWriter = new StreamWriter(request.GetRequestStream()))
-			{
-				streamWriter.Write(this.httpBody);
-				streamWriter.Flush();
-				streamWriter.Close();
-			}
+            WebRequest request = WebRequest.Create(this.url);
+            request.Method = "POST";
+            request.ContentType = "application/json";
+            request.Timeout = requestTimeout;
 
-			return request;
-		}
+            using (var streamWriter = new StreamWriter(request.GetRequestStream()))
+            {
+                streamWriter.Write(this.httpBody);
+                streamWriter.Flush();
+                streamWriter.Close();
+            }
 
-	}
+            return request;
+        }
+
+
+        private static string GetUuidPersistPath()
+        {
+            OperatingSystem os = Environment.OSVersion;
+            PlatformID platform = os.Platform;
+            string path;
+            switch (platform)
+            {
+                case PlatformID.Win32NT:
+                case PlatformID.Win32S:
+                case PlatformID.Win32Windows:
+                case PlatformID.WinCE:
+                    path = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + @"\BuffPanel\";
+                    Debug.Log(path);
+                    return path;
+                case PlatformID.Unix:
+                    path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), @"/BuffPanel/");
+                    Debug.Log(path);
+                    return path;
+                case PlatformID.MacOSX:
+                    return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), @"/BuffPanel/");
+                default:
+                    return null;
+            }
+        }
+
+        private static string ReadSavedUuid(string path)
+        {
+            if (File.Exists(path))
+            {
+                string uuid;
+                try
+                {
+                    uuid = System.IO.File.ReadAllText(path);
+                }
+                catch (UnauthorizedAccessException)
+                {
+                    return "anonymous";
+                }
+                catch (Exception)
+                {
+                    return "";
+                }
+                if (!IsValidUuid(uuid))
+                    return "";
+
+                return uuid;
+            }
+            return "";
+        }
+        private static void SaveUuid(string filePath, string folderPath, string uuid)
+        {
+            System.IO.Directory.CreateDirectory(folderPath);
+            System.IO.File.WriteAllText(filePath, uuid);
+        }
+
+        private static string GetPlayerToken(string gameToken)
+        {
+            string folderPath = GetUuidPersistPath();
+            string filePath = folderPath + "uuid_" + gameToken;
+            string uuid = ReadSavedUuid(filePath);
+            if (string.IsNullOrEmpty(uuid))
+            {
+                uuid = System.Guid.NewGuid().ToString("D").ToUpper();
+                SaveUuid(filePath, folderPath, uuid);
+            }
+            return uuid;
+        }
+
+        private static bool IsValidUuid(string uuid)
+        {
+            Regex uuidRegex = new Regex(@"^[0-9A-F]{8}-[0-9A-F]{4}-4[0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}$");
+            return uuidRegex.IsMatch(uuid);
+        }
+    }
 }
