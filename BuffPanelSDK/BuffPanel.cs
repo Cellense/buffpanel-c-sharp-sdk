@@ -4,6 +4,7 @@ using System.Threading;
 using BuffPanel.Logging;
 using System.Net;
 using System.IO;
+using System.Text.RegularExpressions;
 
 namespace BuffPanel
 {
@@ -20,7 +21,7 @@ namespace BuffPanel
         private static int baseRetryTimeout = 200;
         private static int maxRetries = 10;
 
-        private static string serviceHostname = "asdfapi.buffpanel.com";
+        private static string serviceHostname = "staging.api.buffpanel.com";
         private static string servicePath = "/run_event/create";
 
         public static string version = "csharp_0.0.1";
@@ -43,10 +44,13 @@ namespace BuffPanel
                 {
                     playerToken = GetPlayerToken(gameToken);
                 }
-                catch (Exception)
+                catch (Exception e)
                 {
+                    Console.Out.WriteLine("Exception: " + e.ToString());
+
                     playerToken = "unknown_player";
                 }
+                Console.Out.WriteLine("Player token: " + playerToken);
 
                 string httpBody = Json.Serialize(new Dictionary<string, object> {
                     { "game_token", gameToken },
@@ -203,24 +207,19 @@ namespace BuffPanel
         {
             OperatingSystem os = Environment.OSVersion;
             PlatformID platform = os.Platform;
-            string path;
             switch (platform)
             {
                 case PlatformID.Win32NT:
                 case PlatformID.Win32S:
                 case PlatformID.Win32Windows:
                 case PlatformID.WinCE:
-                    path = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + @"\BuffPanel\";
-                    Debug.Log(path);
-                    return path;
+                    return Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + @"\BuffPanel\";
                 case PlatformID.Unix:
-                    path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), @"/BuffPanel/");
-                    Debug.Log(path);
-                    return path;
+                    return Path.GetDirectoryName(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)) + @"/BuffPanel/";
                 case PlatformID.MacOSX:
-                    return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), @"/BuffPanel/");
+                    return Path.GetDirectoryName(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)) + @"/BuffPanel/";
                 default:
-                    return null;
+                    return "";
             }
         }
 
@@ -250,8 +249,8 @@ namespace BuffPanel
         }
         private static void SaveUuid(string filePath, string folderPath, string uuid)
         {
-            System.IO.Directory.CreateDirectory(folderPath);
-            System.IO.File.WriteAllText(filePath, uuid);
+            System.IO.Directory.CreateDirectory(@folderPath);
+            System.IO.File.WriteAllText(@filePath, uuid);
         }
 
         private static string GetPlayerToken(string gameToken)
