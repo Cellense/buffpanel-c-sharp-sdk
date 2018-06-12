@@ -49,7 +49,7 @@ To acquire the needed information from **Steamworks SDK** you can:
 3. Fill in the [DLC purchase UNIX timestamp](https://partner.steamgames.com/doc/api/ISteamApps#GetEarliestPurchaseUnixTime) for all the items
 4. Track a run using the method containing these pair values in `attributes` parameter
 ```
-BuffPanel.BuffPanel.Track(game_token, player_token, is_existing_player, attributes, [logger]);
+BuffPanel.BuffPanel.Track(game_token, is_existing_player, attributes, [logger]);
 ```
 
 #### Example call:
@@ -75,7 +75,7 @@ To integrate other stores and distribution platforms you use, please contact us 
 By default BuffPanel does not log anything. You can turn on logging by specifying logger instance in `Track` call.
 
 ```
-BuffPanel.BuffPanel.Track(game_token, player_token, is_existing_player, attributes, new BuffPanel.Logging.ConsoleLogger());
+BuffPanel.BuffPanel.Track(game_token, is_existing_player, attributes, new BuffPanel.Logging.ConsoleLogger());
 ```
 
 `ConsoleLogger` logs all activity by default to console. You can create your own custom logger by implementing `BuffPanel.Logging.Logger` interface
