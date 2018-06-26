@@ -21,10 +21,10 @@ namespace BuffPanel
         private static int baseRetryTimeout = 200;
         private static int maxRetries = 10;
 
-        private static string serviceHostname = "staging.api.buffpanel.com";
+        private static string serviceHostname = "api.buffpanel.com";
         private static string servicePath = "/run_event/create";
 
-        public static string version = "csharp_0.0.1";
+        public static string version = "csharp_1.0.0";
 
         private static Thread worker = null;
         private static BuffPanel instance = null;
@@ -44,13 +44,10 @@ namespace BuffPanel
                 {
                     playerToken = GetPlayerToken(gameToken);
                 }
-                catch (Exception e)
+                catch (Exception)
                 {
-                    Console.Out.WriteLine("Exception: " + e.ToString());
-
                     playerToken = "unknown_player";
                 }
-                Console.Out.WriteLine("Player token: " + playerToken);
 
                 string httpBody = Json.Serialize(new Dictionary<string, object> {
                     { "game_token", gameToken },
