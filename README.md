@@ -24,7 +24,7 @@ BuffPanel.BuffPanel.Track(game_token, is_existing_player, attributes, [logger]);
 - `attributes` are a *Dictionary<string, string>* value, that carry any additional information valuable for you, for example purchased DLC list
 - `logger` is an optional `BuffPanel.Logging.Logger` parameter used for logging additional information about BuffPanel activity
 
-Former `player_token` is no longer used, instead universally unique identifier (UUID) is generated and persisted on player's machine.
+Former `player_token` is no longer used, instead universally unique identifier (UUID) is generated and persisted on player's machine implicitly.
 
 ## How it works?
 
